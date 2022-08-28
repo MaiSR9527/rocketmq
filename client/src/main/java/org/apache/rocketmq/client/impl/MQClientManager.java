@@ -45,6 +45,9 @@ public class MQClientManager {
     }
 
     public MQClientInstance getOrCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
+        // MQClientManager维护了一个存放 MQClientInstance实例的map
+        // 同一个clientId只能创建一个MQClientInstance实例
+        // clientId为：IP@instanceName@unitName(可选)
         String clientId = clientConfig.buildMQClientId();
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {

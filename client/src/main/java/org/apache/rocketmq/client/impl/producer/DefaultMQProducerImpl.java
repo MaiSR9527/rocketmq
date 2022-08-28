@@ -197,9 +197,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     this.defaultMQProducer.changeInstanceNameToPID();
                 }
                 // 创建MQClientInstance实列。整个JVM中只存在一个MQClientManager实例，维护一个MQClientInstance缓存表
-                //
                 this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQProducer, rpcHook);
-
+                // 如果同一台服务器上部署两个应用程序，rocketmq为了避免这个问题，如果instanceName为默认值DEFAULT
+                // rocketmq会自动地将instanceName设置为进程ID
+                // MQClientInstance 封装了rocketmq的网络处理api，是消息是消息生产者、消费者与NameServer、Broker打交道的网络通道
+                // 向创建出来的MQClientInstance实例注册服务，将当前生产者加入MQClientInstance管理，方便后续调用网络请求和心跳检测等。
                 boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
                 if (!registerOK) {
                     this.serviceState = ServiceState.CREATE_JUST;
@@ -209,8 +211,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 this.topicPublishInfoTable.put(this.defaultMQProducer.getCreateTopicKey(), new TopicPublishInfo());
-
+                // 启动MQClientInstance，如果MQClientInstance已经启动，则本次启动不会执行
                 if (startFactory) {
+
                     mQClientFactory.start();
                 }
 
