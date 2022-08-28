@@ -146,16 +146,23 @@ public class RouteInfoManager {
             final Channel channel) {
         RegisterBrokerResult result = new RegisterBrokerResult();
         try {
+            // org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor 解析请求类型，如果请求类型是REGISTER_BROKER
+            // 则会请求到此方法注册broker
             try {
+                // 路由注册需要枷锁，防止并发修改RouteInfoManger中的路由表。
                 this.lock.writeLock().lockInterruptibly();
-
+                // 首先判断broker所在的集群是否存在，如果不存在则创建集群 new HashSet<String>
                 Set<String> brokerNames = this.clusterAddrTable.computeIfAbsent(clusterName, k -> new HashSet<>());
+                // 将broker名加入集群broker集合
+                brokerNames.add(brokerName);
                 brokerNames.add(brokerName);
 
                 boolean registerFirst = false;
-
+                // 维护brokerData信息，先从brokerAddrTable中根据broker名获取broker信息
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
+                // 如果不存在，则创建
                 if (null == brokerData) {
+                    // 要注册broker，第一次注册
                     registerFirst = true;
                     brokerData = new BrokerData(clusterName, brokerName, new HashMap<>());
                     this.brokerAddrTable.put(brokerName, brokerData);
@@ -163,6 +170,7 @@ public class RouteInfoManager {
                 Map<Long, String> brokerAddrsMap = brokerData.getBrokerAddrs();
                 //Switch slave to master: first remove <1, IP:PORT> in namesrv, then add <0, IP:PORT>
                 //The same IP:PORT must only have one record in brokerAddrTable
+                // 译：slave切换到master是 先把slave移除，再添加。同一个 IP:PORT 必须只有一个记录
                 Iterator<Entry<Long, String>> it = brokerAddrsMap.entrySet().iterator();
                 while (it.hasNext()) {
                     Entry<Long, String> item = it.next();
@@ -171,7 +179,7 @@ public class RouteInfoManager {
                         it.remove();
                     }
                 }
-
+                // 把brokerId
                 String oldAddr = brokerData.getBrokerAddrs().put(brokerId, brokerAddr);
                 if (MixAll.MASTER_ID == brokerId) {
                     log.info("cluster [{}] brokerName [{}] master address change from {} to {}",
@@ -182,6 +190,8 @@ public class RouteInfoManager {
 
                 if (null != topicConfigWrapper
                         && MixAll.MASTER_ID == brokerId) {
+                    // 如果broker是主节点并且topic配置信息发生该表(dataVersion不一致)或者是初次注册，需要创建或更新topic路由元数据
+                    // 并填充topicQueueTable，其实就是为默认主题自动注册路由信息，其中包含 MixAll.DEFAULT_TOPIC的路由信息。
                     if (this.isBrokerTopicConfigChanged(brokerAddr, topicConfigWrapper.getDataVersion())
                             || registerFirst) {
                         ConcurrentMap<String, TopicConfig> tcTable =
@@ -193,7 +203,7 @@ public class RouteInfoManager {
                         }
                     }
                 }
-
+                // 更新BrokerLiveInfo，存储状态正常的Broker信息表，BrokeLiveInfo是执行路由删除操作的重要依据
                 BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr,
                         new BrokerLiveInfo(
                                 System.currentTimeMillis(),
@@ -471,10 +481,12 @@ public class RouteInfoManager {
         while (it.hasNext()) {
             Entry<String, BrokerLiveInfo> next = it.next();
             long last = next.getValue().getLastUpdateTimestamp();
+            // 如果收到broker上一次心跳包的时间小于120秒，则移除该broker的信息
             if ((last + BROKER_CHANNEL_EXPIRED_TIME) < System.currentTimeMillis()) {
                 RemotingUtil.closeChannel(next.getValue().getChannel());
                 it.remove();
                 log.warn("The broker channel expired, {} {}ms", next.getKey(), BROKER_CHANNEL_EXPIRED_TIME);
+                // 关闭连接
                 this.onChannelDestroy(next.getKey(), next.getValue().getChannel());
 
                 removeCount++;

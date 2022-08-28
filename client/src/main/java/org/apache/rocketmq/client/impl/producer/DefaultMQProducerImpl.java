@@ -191,11 +191,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 this.serviceState = ServiceState.START_FAILED;
 
                 this.checkConfig();
-
+                // 检查producerGroup是否符合要求(不等于CLIENT_INNER_PRODUCER)
                 if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
+                    // 改变生产者的instanceName为: 进程ID+#+当前时间(纳秒)
                     this.defaultMQProducer.changeInstanceNameToPID();
                 }
-
+                // 创建MQClientInstance实列。整个JVM中只存在一个MQClientManager实例，维护一个MQClientInstance缓存表
+                //
                 this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQProducer, rpcHook);
 
                 boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
