@@ -104,6 +104,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
             case RequestCode.UNREGISTER_BROKER:
                 return this.unregisterBroker(ctx, request);
             case RequestCode.GET_ROUTEINFO_BY_TOPIC:
+                // 拉取路由信息
                 return this.getRouteInfoByTopic(ctx, request);
             case RequestCode.GET_BROKER_CLUSTER_INFO:
                 return this.getBrokerClusterInfo(ctx, request);
@@ -353,7 +354,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
-
+        // 获取Topic的路由信息 RouteInfoManager ---> pickupTopicRouteData()
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
 
         if (topicRouteData != null) {
@@ -363,7 +364,7 @@ public class DefaultRequestProcessor extends AsyncNettyRequestProcessor implemen
                         requestHeader.getTopic());
                 topicRouteData.setOrderTopicConf(orderTopicConf);
             }
-
+            // 序列化topicRouteData
             byte[] content;
             Boolean standardJsonOnly = requestHeader.getAcceptStandardJsonOnly();
             if (request.getVersion() >= Version.V4_9_4.ordinal() || (null != standardJsonOnly && standardJsonOnly)) {
