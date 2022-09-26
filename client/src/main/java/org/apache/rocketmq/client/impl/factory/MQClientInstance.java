@@ -178,6 +178,9 @@ public class MQClientInstance {
             // 非顺序消息
             List<QueueData> qds = route.getQueueDatas();
             Collections.sort(qds);
+            // 循环遍历右路信息的QueueData,如果队列没有写权限，则继续遍历下一个QueueData。
+            // 根据brokerName找到brokerData信息，如果找不到或没找到master，则遍历下一个QueueData。
+            // 根据写队列个数，topic+序号 创建MessageQueue，填充topicPublicShInfo的List<MessageQueue>，完成消息发送的路由查找。
             for (QueueData qd : qds) {
                 if (PermName.isWriteable(qd.getPerm())) {
                     BrokerData brokerData = null;
