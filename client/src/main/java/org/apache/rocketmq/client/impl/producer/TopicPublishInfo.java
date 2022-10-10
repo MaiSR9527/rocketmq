@@ -83,6 +83,9 @@ public class TopicPublishInfo {
     }
 
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
+        // 在消息发送的过程中，可能会多次执行选择消息队列，lastBrokerName就是上一次选择执行发送消息失败的Broker。
+        // 第一次执行消息发送的时候，lastBrokerName为空，此时直接用sendWhichQueue自增获取值，与当前路由表中消息队列的个数取模，返回该位置的MessageQueue。
+        // 如果消息发送失败，下次进行选择消息队列的时候会规避上次MessageQueue所在的Broker，否则很有可能会再次失败，
         if (lastBrokerName == null) {
             return selectOneMessageQueue();
         } else {

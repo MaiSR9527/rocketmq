@@ -31,6 +31,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
+        // 根据Broker名称从缓存表中获取FaultItem，如果找到则更新FaultItem，否则创建FaultItem
         FaultItem old = this.faultItemTable.get(name);
         if (null == old) {
             final FaultItem faultItem = new FaultItem(name);
@@ -51,9 +52,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     @Override
     public boolean isAvailable(final String name) {
         final FaultItem faultItem = this.faultItemTable.get(name);
+        // Broker是否存在故障列表里
         if (faultItem != null) {
             return faultItem.isAvailable();
         }
+        // 不存在，返回该Broker可用
         return true;
     }
 
@@ -92,8 +95,11 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     }
 
     class FaultItem implements Comparable<FaultItem> {
+        /**Broker名称*/
         private final String name;
+        /**本次消息发送的延迟时间*/
         private volatile long currentLatency;
+        /**故障规避的开始时间*/
         private volatile long startTimestamp;
 
         public FaultItem(final String name) {
@@ -126,6 +132,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         public boolean isAvailable() {
+            // startTimestamp 为当前时间加上需要规避的时长。startTimestamp是判断Broker当前是否可用的直接依据。
             return (System.currentTimeMillis() - startTimestamp) >= 0;
         }
 
