@@ -164,6 +164,7 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
 
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+        // 检查broker是否有写权限
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -171,14 +172,16 @@ public abstract class AbstractSendMessageProcessor extends AsyncNettyRequestProc
                 + "] sending message is forbidden");
             return response;
         }
-
+        // 检查topic是否可以进行消息发送。主要针对默认主题，默认主题不能发送消息，仅供路由查找
         if (!TopicValidator.validateTopic(requestHeader.getTopic(), response)) {
             return response;
         }
         if (TopicValidator.isNotAllowedSendTopic(requestHeader.getTopic(), response)) {
             return response;
         }
-
+        // 在NameServer端存储主题的配置信息，默认路径为${ROCKET_HOME}/store/config/topic.json
+        // order：是否是顺序消息 perm：权限码 radQueueNums：读队列数量 writeQueueNums：读队列数量
+        // topicName：主题名称 topicSysFlag：topicFlag topicFilterType：主题过滤方式
         TopicConfig topicConfig =
             this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
