@@ -81,29 +81,33 @@ public class DefaultMessageStore implements MessageStore {
      * 消息存储配置属性
      */
     private final MessageStoreConfig messageStoreConfig;
-    // CommitLog
+    // CommitLog文件存储实现类
     private final CommitLog commitLog;
 
+    // 消息队列存储缓存列表
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
+    // ConsumeQueue文件刷盘线程
     private final FlushConsumeQueueService flushConsumeQueueService;
 
+    // 清除CommitLog文件服务
     private final CleanCommitLogService cleanCommitLogService;
 
+    // 清除ConsumeQueue文件服务
     private final CleanConsumeQueueService cleanConsumeQueueService;
-
+    // Index文件实现类
     private final IndexService indexService;
-
+    // MappedFile分配服务
     private final AllocateMappedFileService allocateMappedFileService;
-
+    // CommitLog消息分发，根据CommitLog文件构建ConsumeQueue、Index文件
     private final ReputMessageService reputMessageService;
-
+    // 存储高可用机制
     private final HAService haService;
 
     private final ScheduleMessageService scheduleMessageService;
 
     private final StoreStatsService storeStatsService;
-
+    // 消息堆内存缓存
     private final TransientStorePool transientStorePool;
 
     private final RunningFlags runningFlags = new RunningFlags();
@@ -113,16 +117,17 @@ public class DefaultMessageStore implements MessageStore {
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread"));
     private final BrokerStatsManager brokerStatsManager;
     private final MessageArrivingListener messageArrivingListener;
+    // Broker配置属性
     private final BrokerConfig brokerConfig;
 
     private volatile boolean shutdown = true;
-
+    // 文件刷盘检测点
     private StoreCheckpoint storeCheckpoint;
 
     private AtomicLong printTimes = new AtomicLong(0);
 
     private final AtomicInteger lmqConsumeQueueNum = new AtomicInteger(0);
-
+    // CommitLog文件转发请求
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
     private RandomAccessFile lockFile;
