@@ -197,7 +197,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         switch (this.serviceState) {
             case CREATE_JUST:
                 this.serviceState = ServiceState.START_FAILED;
-
+                // 检查生产者的配置，例如生产者分组不能是 DEFAULT_PRODUCER
                 this.checkConfig();
                 // 检查producerGroup是否符合要求(不等于CLIENT_INNER_PRODUCER)
                 if (!this.defaultMQProducer.getProducerGroup().equals(MixAll.CLIENT_INNER_PRODUCER_GROUP)) {
@@ -208,7 +208,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQProducer, rpcHook);
                 // 如果同一台服务器上部署两个应用程序，rocketmq为了避免这个问题，如果instanceName为默认值DEFAULT
                 // rocketmq会自动地将instanceName设置为进程ID
-                // MQClientInstance 封装了rocketmq的网络处理api，是消息是消息生产者、消费者与NameServer、Broker打交道的网络通道
+                // MQClientInstance 封装了rocketmq的网络处理api，是消息生产者、消费者与NameServer、Broker打交道的网络通道
                 // 向创建出来的MQClientInstance实例注册服务，将当前生产者加入MQClientInstance管理，方便后续调用网络请求和心跳检测等。
                 boolean registerOK = mQClientFactory.registerProducer(this.defaultMQProducer.getProducerGroup(), this);
                 if (!registerOK) {
